@@ -2,20 +2,23 @@ const { get } = require("../utils/requests");
 const { FPL_BASE_URL } = require("../utils/constants");
 
 async function getGameWeekPicksWithPlayerDetails(teamId, gameweek) {
-  const { active_chip, entry_history, picks } = await getGameWeekPicks(
-    teamId,
-    gameweek
-  );
-  console.log("Picks: ", picks);
-  return picks;
+  try {
+    const { active_chip, entry_history, picks } = await getGameWeekPicks(
+      teamId,
+      gameweek
+    );
+    const detailedPicks = picks.map((pick) => getPlayerDetails(pick));
+    const gameweekPicks = await Promise.all(detailedPicks);
+    // console.log(gameweekPicks);
+    return { active_chip, entry_history, picks: gameweekPicks };
+  } catch (error) {}
 }
 
-async function getPlayerDetails(playerId) {
-  const url = new URL(`${FPL_BASE_URL}/element-summary/${playerId}`);
-
+async function getPlayerDetails(pick) {
+  const url = new URL(`${FPL_BASE_URL}/element-summary/${pick.element}/`);
   return new Promise(async (resolve, reject) => {
     const onSuccess = ({ data }) => {
-      resolve(data);
+      resolve({ ...data, ...pick });
     };
     const onFailure = ({ response }) => {
       reject(response);
